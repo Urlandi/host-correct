@@ -1,0 +1,498 @@
+#!/bin/sh
+#
+# *************************************************************
+#
+# Original wrote for unbound server by:
+#
+# (C) 2008 W.C.A. Wijngaards.  BSD Licensed.
+#
+# and it's source code may be found on 
+# https://github.com/dnstap/unbound/blob/master/contrib/unbound_munin_
+#
+# *************************************************************
+#
+# plugin for munin to monitor 
+# usage of knot-resolver servers built-in stats counters
+#
+# To install copy this to /usr/local/share/munin/plugins/kresd_munin_
+# and use munin-node-configure (--suggest, --shell).
+#
+# (C) 2020 Michael Vasilyev.  BSD Licensed.
+#
+# To install; enable stat module in kresd.conf
+#
+#     modules.load('stats')
+#
+# be sure about nc (netcat) is presents in a system
+#
+# Environment variables for this script
+#    statefile        - where to put temporary statefile.
+#    kresd_control    - directory where to find kresd control sockets.
+#    nc_util          - name of netcat utility, common 'nc' or 'netcat'
+#                       may be fullpath to it
+#
+# You can set them in your munin/plugin-conf.d/plugins.conf file
+# with:
+# [kresd*]
+# user root
+# env.statefile /usr/local/var/munin/plugin-state/kresd-state
+# env.kresd_control /run/kresd/control
+# env.nc_util nc
+#
+# This plugin can create different graphs depending on what name
+# you link it as (with ln -s) into the plugins directory
+# You can link it multiple times.
+# If you are only a casual user, the _hits and _by_type are most interesting,
+# possibly followed by _by_rcode.
+#
+#    kresd_munin_hits        - base volume, cache hits, unwanted traffic
+#    kresd_munin_by_rcode    - answers by rcode, validation status
+#    kresd_munin_by_flags    - incoming queries by flags
+#    kresd_munin_histogram   - histogram of query resolving times
+#
+# Magic markers - optional - used by installation scripts and
+# munin-config:  (originally contrib family but munin-node-configure ignores it)
+#
+#%# family=auto
+#%# capabilities=autoconf suggest
+
+# POD documentation
+: <<=cut
+=head1 NAME
+
+kresd_munin_ - Munin plugin to monitor the Unbound DNS resolver.
+
+=head1 APPLICABLE SYSTEMS
+
+System with knot-resolver daemon.
+
+=head1 CONFIGURATION
+
+  [kresd*]
+  user root
+  env.statefile /usr/local/var/munin/plugin-state/kresd-state
+  env.kresd_control /run/kron-resolver/control
+  env.nc_util nc
+#  env.spoof_warn 1000
+#  env.spoof_crit 100000
+
+Use the .env settings to override the defaults.
+
+=head1 USAGE
+
+Can be used to present different graphs. Use ln -s for that name in
+the plugins directory to enable the graph.
+kresd_munin_hits         - base volume, cache hits, unwanted traffic
+kresd_munin_by_rcode     - answers by rcode, validation status
+kresd_munin_by_flags     - incoming queries by flags
+kresd_munin_histogram    - histogram of query resolving times
+
+=head1 AUTHOR
+
+Copyright 2008 W.C.A. Wijngaards, Copyright 2020 Michael Vasilyev
+
+=head1 LICENSE
+
+BSD
+
+=cut
+
+set -o nounset
+
+state=${statefile:-'/usr/local/var/munin/plugin-state/kresd-state'}
+kresd_control=${kresd_control:-'/run/kron-resolver/control'}
+nc_util=${nc_util:-'nc'}
+
+exec_param=${1:-''}
+
+# number of seconds between polling attempts.
+# makes the statefile hang around for at least this many seconds,
+# so that multiple links of this script can share the results.
+lee=55
+
+# to keep things within 19 characters
+ABBREV='-e s/request/r/; s/answer/a/; s/query/q/; s/predict/p/; \
+s/1500ms/15/; s/1000ms/1/; s/500ms/05/; s/250ms/025/; s/100ms/01/; s/50ms/005/; s/10ms/001/; s/1ms/1m/; \
+s/total/tl/; s/cached/ch/; s/dnssec/ds/; s/edns/es/; s/edns0/es0/; s/internal/it/; \
+s/noerror/nr/; s/nodata/nd/; s/nxdomain/nx/; s/servfail/sf/; s/slow/sl/'
+
+# get value from $1 into return variable $value
+value=0
+get_value ( ) {
+    values="`grep '^'${1}'] => ' ${state} | sed -e 's/^.*] => //'`"
+    value=0
+    for v in "${values}"; do
+        if test "${v}x" = 'x'; then
+            v=0
+        fi
+        value=`expr "${value}" + "${v}"`
+    done
+}
+
+now=`date +%s`        
+
+# download the state from the kresd server instance
+get_state ( ) {
+    # obtain lock for fetching the state
+    # because there is a race condition in fetching and writing to file
+
+    lock="${state}.lock"
+
+    # see if the lock is stale, if so, take it 
+    if test -f "${lock}"; then
+        pid="`cat $lock 2>&1`"
+        kill -0 "${pid}" >/dev/null 2>&1
+        if test "${?}" -ne 0 -a "${pid}" != "${$}" ; then
+            echo "${$}">"${lock}"
+        fi
+    fi
+
+    try_lock=0
+    while test ! -f "${lock}" || test "`cat ${lock} 2>&1`" != "${$}"; do
+        i=0
+        while test -f "${lock}"; do
+            # wait
+            i=`expr "${i}" + 1`
+            if test "${i}" -gt 1000; then
+                sleep 1;
+            fi
+            if test "${i}" -gt 1500; then
+                echo "error locking ${lock} = `cat ${lock}`"
+                rm -f "${lock}"
+                exit 1
+            fi
+        done
+        # try to get it
+        echo "${$}">"${lock}"
+        if [ ! -f "${lock}" ]; then
+            try_lock=`expr "${try_lock}" + 1`
+            if [ "${try_lock}" -gt 10 ]; then
+                echo "can't locking ${lock}
+"
+                rm -f "${lock}"
+                exit 1
+            fi
+        fi
+    done
+    # do not refetch if the file exists and only LEE seconds old
+    if test -f "${state}"; then
+        value=`head -1 "${state}"`
+        if test "${now}" -lt `expr "${value}" + "${lee}"`; then
+            rm -f "${lock}"
+            return
+        fi
+    fi
+    # get stats from all running kresd instances
+    echo "${now}">"${state}"
+    for socket in "${kresd_control}/*"; do
+        echo 'stats.list()' | "${nc_util}" -u "${socket}">>"${state}"
+        if test "${?}" -ne 0; then
+            echo 'error retrieving data from kresd control socket'
+            rm -f "${lock}"
+            exit 1
+        fi
+    done
+    rm -f "${lock}"
+}
+
+if test "${exec_param}" = 'autoconf'; then
+    if test ! -d "${kresd_control}"; then
+        echo no "(${kresd_control} does not exist)"
+        exit 1
+    fi
+    if test ! -d `dirname "${state}"`; then
+        echo no "(`dirname ${state}` directory does not exist)"
+        exit 1
+    fi
+    echo yes
+    exit 0
+fi
+
+if test "${exec_param}" = 'suggest' ; then
+    echo 'hits'
+#    echo "queue"
+#    echo "memory"
+#    echo "by_type"
+#    echo "by_class"
+#    echo "by_opcode"
+    echo 'by_rcode'
+    echo 'by_flags'
+    echo 'histogram'
+    exit 0
+fi
+
+# determine my type, by name
+id=`echo $0 | sed -e 's/^.*kresd_munin_//'`
+if test "${id}x" = 'x'; then
+    # some default to keep people sane.
+    id='hits'
+fi
+
+# print label and min 0 for a name $1 in kresd format
+p_config ( ) {
+    mn=`echo "${1}" | sed "${ABBREV}" | tr . _`
+    echo "${mn}.label" "${2}"
+    echo "${mn}.min" 0
+}
+
+if test "${exec_param}" = 'config' ; then
+    if test ! -f "${state}"; then
+        get_state
+    fi
+    case "${id}" in
+    hits)
+        echo 'graph_title Knot Resolver DNS traffic and cache hits'
+        echo 'graph_args --base 1000 -l 0'
+        echo 'graph_vlabel queries / second'
+        echo 'graph_category DNS'
+        p_config 'request.total' 'total queries'
+        p_config 'request.onternal' 'self internal queries'
+        p_config 'answer.total' 'total answered'
+        p_config 'answer.cached' 'cache answered'
+        p_config 'request.tcp' 'TCP queries'
+        p_config 'request.udp' 'UDP queries'
+        p_config 'request.doh' 'DoH queries'
+        p_config 'request.dot' 'DoT queries'
+        p_config 'query.edns' 'EDNS present'
+        p_config 'query.dnssec' 'DNSSEC'
+        echo 'graph_info DNS summaries of the recursive resolver.'
+        ;;
+#    queue)
+#        echo "graph_title Unbound requestlist size"
+#        echo "graph_args --base 1000 -l 0"
+#        echo "graph_vlabel number of queries"
+#        echo "graph_category DNS"
+#        p_config "total.requestlist.avg" "Average size of queue on insert"
+#        p_config "total.requestlist.max" "Max size of queue \(in 5 min\)"
+#        p_config "total.requestlist.overwritten" "Number of queries replaced by new ones"
+#        p_config "total.requestlist.exceeded" "Number of queries dropped due to lack of space"
+#        echo "graph_info The queries that did not hit the cache and need recursion service take up space in the requestlist. If there are too many queries, first queries get overwritten, and at last resort dropped."
+#        ;;
+#    memory)
+#        echo "graph_title Unbound memory usage"
+#        echo "graph_args --base 1024 -l 0"
+#        echo "graph_vlabel memory used in bytes"
+#        echo "graph_category DNS"
+#        p_config "mem.total.sbrk" "Total memory"
+#        p_config "mem.cache.rrset" "RRset cache memory"
+#        p_config "mem.cache.message" "Message cache memory"
+#        p_config "mem.mod.iterator" "Iterator module memory"
+#        p_config "mem.mod.validator" "Validator module and key cache memory"
+#        echo "graph_info The memory used by unbound."
+#        ;;
+#    by_type)
+#        echo "graph_title Unbound DNS queries by type"
+#        echo "graph_args --base 1000 -l 0"
+#        echo "graph_vlabel queries / second"
+#        echo "graph_category DNS"
+#        for x in `grep "^num.query.type" $state`; do
+#            nm=`echo $x | sed -e 's/=.*$//'`
+#            tp=`echo $nm | sed -e s/num.query.type.//`
+#            p_config "$nm" "$tp"
+#        done
+#        echo "graph_info queries by DNS RR type queried for"
+#        ;;
+#    by_class)
+#        echo "graph_title Unbound DNS queries by class"
+#        echo "graph_args --base 1000 -l 0"
+#        echo "graph_vlabel queries / second"
+#        echo "graph_category DNS"
+#        for x in `grep "^num.query.class" $state`; do
+#            nm=`echo $x | sed -e 's/=.*$//'`
+#            tp=`echo $nm | sed -e s/num.query.class.//`
+#            p_config "$nm" "$tp"
+#        done
+#        echo "graph_info queries by DNS RR class queried for."
+#        ;;
+#    by_opcode)
+#        echo "graph_title Unbound DNS queries by opcode"
+#        echo "graph_args --base 1000 -l 0"
+#        echo "graph_vlabel queries / second"
+#        echo "graph_category DNS"
+#        for x in `grep "^num.query.opcode" $state`; do
+#            nm=`echo $x | sed -e 's/=.*$//'`
+#            tp=`echo $nm | sed -e s/num.query.opcode.//`
+#            p_config "$nm" "$tp"
+#        done
+#        echo "graph_info queries by opcode in the query packet."
+#        ;;
+    by_rcode)
+        echo 'graph_title Knot Resolver DNS answers by return code'
+        echo 'graph_args --base 1000 -l 0'
+        echo 'graph_vlabel answer packets / second'
+        echo 'graph_category DNS'
+        p_config 'answer.noerror' 'NOERROR'
+        p_config 'answer.nodata' 'NODATA'
+        p_config 'answer.nxdomain' 'NXDOMAIN'
+        p_config 'answer.cached' 'SERVFAIL'
+        echo 'graph_info answers sorted by return value. rrsets bogus is the number of rrsets marked bogus per second by the validator'
+        ;;
+    by_flags)
+        echo 'graph_title Knot Resolver DNS answers by flags'
+        echo 'graph_args --base 1000 -l 0'
+        echo 'graph_vlabel queries / second'
+        echo 'graph_category DNS'
+        p_config 'answer.aa' 'authoritative answer'
+        p_config 'answer.tc' 'truncated'
+        p_config 'answer.ra' 'recursion avail'
+        p_config 'answer.rd' 'recursion desired'
+        p_config 'answer.ad' 'auth data (DNSSEC)'
+        p_config 'answer.cd' 'check disabled (DNSSEC)'
+        p_config 'answer.do' 'DNSSEC OK'
+        p_config 'answer.edns0' 'EDNS OPT present'
+        echo 'graph_info This graphs plots the flags in answers.'
+        ;;
+    histogram)
+        echo 'graph_title Knot Resolver DNS histogram of reply time'
+        echo 'graph_args --base 1000 -l 0'
+        echo 'graph_vlabel queries / second'
+        echo 'graph_category DNS'
+        echo a_1m.label 'less 1 ms'
+        echo a_1m.min 0
+        echo a_1m.draw AREA
+        echo a_1m.colour 0000FF
+        echo a_001.label 'less 10 ms'
+        echo a_001.min 0
+        echo a_001.colour 1F00DF
+        echo a_001.draw STACK
+        echo a_005.label 'less 50 ms'
+        echo a_005.min 0
+        echo a_005.draw STACK
+        echo a_005.colour 3F00BF
+        echo a_01.label 'less 100 ms'
+        echo a_01.min 0
+        echo a_01.draw STACK
+        echo a_01.colour 5F009F
+        echo a_025.label 'less 250 ms'
+        echo a_025.min 0
+        echo a_025.draw STACK
+        echo a_025.colour 7F007F
+        echo a_05.label 'less 500 ms'
+        echo a_05.min 0
+        echo a_05.draw STACK
+        echo a_05.colour 9F005F
+        echo a_1.label 'less 1 sec'
+        echo a_1.min 0
+        echo a_1.draw STACK
+        echo a_1.colour BF003F
+        echo a_15.label 'less 1,5 sec'
+        echo a_15.min 0
+        echo a_15.draw STACK
+        echo a_15.colour DF001F
+        echo a_sl.label 'very slow'
+        echo a_sl.min 0
+        echo a_sl.draw STACK
+        echo a_sl.colour FF0000
+        echo 'graph_info Histogram of the reply times for queries.'
+        ;;
+    esac
+
+    exit 0
+fi
+
+# get the time elapsed
+elapsed="${lee}"
+if test -f "${state}"; then
+    statetime=`head -1 "${state}"`
+    value=`expr "${now}" - "${statetime}"`
+    if [ "${value}" -le 0 ]; then
+        echo 'error: time elapsed 0 or could not retrieve data'
+        exit 1
+    fi
+    elapsed="${value}"
+fi
+
+# do the stats itself
+get_state
+
+# print value for $1 / elapsed
+print_qps ( ) {
+    mn=`echo "${1}" | sed "${ABBREV}" | tr . _`
+    get_value "${1}"
+    echo "${mn}.value" `echo scale=6';' "${value}" / "${elapsed}" | bc `
+}
+
+# print qps if line already found in $2
+# print_qps_line ( ) {
+#    mn=`echo $1 | sed $ABBREV | tr . _`
+#    value="`echo ${2} | sed -e 's/^.*] => //'`"
+#    echo "${mn}.value" `echo scale=6';' "${value}" / "${elapsed}" | bc `
+#}
+
+# print value for $1
+# print_value ( ) {
+#    mn=`echo "${1}" | sed $ABBREV | tr . _`
+#    get_value "${1}"
+#    echo "${mn}.value" "${value}"
+#}
+
+case "${id}" in
+hits)
+    for x in 'request.total request.onternal answer.total answer.cached \
+request.tcp request.udp request.doh request.dot query.edns query.dnssec'
+        do print_qps "${x}"
+    done
+    ;;
+# queue)
+#    for x in total.requestlist.avg total.requestlist.max \
+#        total.requestlist.overwritten total.requestlist.exceeded; do
+#        print_value $x
+#    done
+#    ;;
+# memory)
+#    mn=`echo mem.total.sbrk | sed $ABBREV | tr . _`
+#    get_value 'mem.total.sbrk'
+#    if test $value -eq 0; then
+#        chk=`echo $ctrl | sed -e 's/-control$/-checkconf/'`
+#        pidf=`$chk -o pidfile $conf 2>&1`
+#        pid=`cat $pidf 2>&1`
+#        value=`ps -p "$pid" -o rss= 2>&1`
+#        if test "`expr $value + 1 - 1 2>&1`" -eq "$value" 2>&1; then
+#            value=`expr $value \* 1024` 
+#        else
+#            value=0
+#        fi
+#    fi
+#    echo "$mn.value" $value
+#    for x in mem.cache.rrset mem.cache.message \
+#        mem.mod.iterator mem.mod.validator; do
+#        print_value $x
+#    done
+#    ;;
+# by_type)
+#    for x in `grep "^num.query.type" $state`; do
+#        nm=`echo $x | sed -e 's/=.*$//'`
+#        print_qps_line $nm $x
+#    done
+#    ;;
+# by_class)
+#    for x in `grep "^num.query.class" $state`; do
+#        nm=`echo $x | sed -e 's/=.*$//'`
+#        print_qps_line $nm $x
+#    done
+#    ;;
+# by_opcode)
+#    for x in `grep "^num.query.opcode" $state`; do
+#        nm=`echo $x | sed -e 's/=.*$//'`
+#        print_qps_line $nm $x
+#    done
+#    ;;
+by_rcode)
+    for x in 'answer.aa answer.tc answer.ra answer.rd answer.ad answer.cd \
+answer.do answer.edns0'
+        do print_qps "${x}"
+    done
+    ;;
+by_flags)
+    for x in 'answer.aa answer.tc answer.ra answer.rd answer.ad answer.cd \
+answer.do answer.edns0'
+        do print_qps "${x}"
+    done
+    ;;
+histogram)
+    for x in 'answer.1ms answer.10ms answer.50ms answer.100ms answer.250ms \
+answer.500ms answer.1000ms answer.1500ms'
+        do print_qps "${x}"
+    done
+    ;;
+esac
