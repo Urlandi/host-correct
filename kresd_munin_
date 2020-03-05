@@ -11,8 +11,8 @@
 #
 # *************************************************************
 #
-# plugin for munin to monitor 
-# usage of knot-resolver servers built-in stats counters
+# plugin for munin to monitor usage of knot-resolver servers 
+# built-in stats counters
 #
 # To install copy this to /usr/local/share/munin/plugins/kresd_munin_
 # and use munin-node-configure (--suggest, --shell).
