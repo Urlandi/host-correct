@@ -9,5 +9,5 @@ Little bit files for host-correct.ru private DNS project:
   
 # DoH and DoT
 
-You may freely use https://host-correct.ru/doh in yours browser, for example Firefox as DoH service. DoT service too as you want. But remember host machine have 256MByte RAM only, because be carrefully and do not hope to miracle.
-Visit to https://host-correct.ru/ for more info and views some statistics of server works.
+You can freely use https://host-correct.ru/doh in yours browser, for example Firefox as DoH service. DoT service too, as do you want. But remember host machine have 256MByte RAM only, because be carrefully and do not hope to miracle.
+Visit to https://host-correct.ru/ for more information and views some statistics of server works.
