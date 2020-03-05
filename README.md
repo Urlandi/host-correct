@@ -4,7 +4,7 @@ Little bit files for host-correct.ru private DNS project:
 
  - lighttpd vhost config
  - [knot-resolver config](kresd.conf)
- - [munin plugin for knot-resolver](munin_kresd_)
+ - [munin plugin for knot-resolver](kresd_munin_)
  - [default site page](index.htm)
   
 # DoH and DoT
