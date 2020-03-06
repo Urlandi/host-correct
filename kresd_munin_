@@ -70,8 +70,8 @@ System with knot-resolver daemon.
 
   [kresd*]
   user root
-  env.statefile /usr/local/var/munin/plugin-state/kresd-state
-  env.kresd_control /run/kron-resolver/control
+  env.statefile /var/lib/munin/plugin-state/kresd-state
+  env.kresd_control /run/knot-resolver/control
   env.nc_util nc
 #  env.spoof_warn 1000
 #  env.spoof_crit 100000
@@ -99,8 +99,8 @@ BSD
 
 set -o nounset
 
-state=${statefile:-'/usr/local/var/munin/plugin-state/kresd-state'}
-kresd_control=${kresd_control:-'/run/kron-resolver/control'}
+state=${statefile:-'/var/lib/munin/plugin-state/kresd-state'}
+kresd_control=${kresd_control:-'/run/knot-resolver/control'}
 nc_util=${nc_util:-'nc'}
 
 exec_param=${1:-''}
@@ -111,17 +111,17 @@ exec_param=${1:-''}
 lee=55
 
 # to keep things within 19 characters
-ABBREV='-e s/request/r/; s/answer/a/; s/query/q/; s/predict/p/; \
+ABBREV="-e s/request/r/; s/answer/a/; s/query/q/; s/predict/p/; \
 s/1500ms/15/; s/1000ms/1/; s/500ms/05/; s/250ms/025/; s/100ms/01/; s/50ms/005/; s/10ms/001/; s/1ms/1m/; \
 s/total/tl/; s/cached/ch/; s/dnssec/ds/; s/edns/es/; s/edns0/es0/; s/internal/it/; \
-s/noerror/nr/; s/nodata/nd/; s/nxdomain/nx/; s/servfail/sf/; s/slow/sl/'
+s/noerror/nr/; s/nodata/nd/; s/nxdomain/nx/; s/servfail/sf/; s/slow/sl/"
 
 # get value from $1 into return variable $value
 value=0
 get_value ( ) {
-    values="`grep '^'${1}'] => ' ${state} | sed -e 's/^.*] => //'`"
+    values="`grep "^\[${1}\] => " ${state} | sed -e 's/^.*] => //'`"
     value=0
-    for v in "${values}"; do
+    for v in ${values}; do
         if test "${v}x" = 'x'; then
             v=0
         fi
@@ -148,7 +148,7 @@ get_state ( ) {
     fi
 
     try_lock=0
-    while test ! -f "${lock}" || test "`cat ${lock} 2>&1`" != "${$}"; do
+    while test ! -f "${lock}" || test "`cat "${lock}" 2>&1`" != "${$}"; do
         i=0
         while test -f "${lock}"; do
             # wait
@@ -184,8 +184,8 @@ get_state ( ) {
     fi
     # get stats from all running kresd instances
     echo "${now}">"${state}"
-    for socket in "${kresd_control}/*"; do
-        echo 'stats.list()' | "${nc_util}" -u "${socket}">>"${state}"
+    for socket in `ls "${kresd_control}/"`; do
+        echo 'stats.list()' | "${nc_util}" -U "${kresd_control}/${socket}">>"${state}"
         if test "${?}" -ne 0; then
             echo 'error retrieving data from kresd control socket'
             rm -f "${lock}"
@@ -246,7 +246,7 @@ if test "${exec_param}" = 'config' ; then
         echo 'graph_vlabel queries / second'
         echo 'graph_category DNS'
         p_config 'request.total' 'total queries'
-        p_config 'request.onternal' 'self internal queries'
+        p_config 'request.internal' 'self internal queries'
         p_config 'answer.total' 'total answered'
         p_config 'answer.cached' 'cache answered'
         p_config 'request.tcp' 'TCP queries'
@@ -409,7 +409,7 @@ get_state
 print_qps ( ) {
     mn=`echo "${1}" | sed "${ABBREV}" | tr . _`
     get_value "${1}"
-    echo "${mn}.value" `echo scale=6';' "${value}" / "${elapsed}" | bc `
+    echo "${mn}.value" `echo scale=1';' "${value}" / "${elapsed}" | bc `
 }
 
 # print qps if line already found in $2
@@ -428,8 +428,8 @@ print_qps ( ) {
 
 case "${id}" in
 hits)
-    for x in 'request.total request.onternal answer.total answer.cached \
-request.tcp request.udp request.doh request.dot query.edns query.dnssec'
+    for x in 'request.total' 'request.internal' 'answer.total' 'answer.cached' \
+'request.tcp' 'request.udp' 'request.doh' 'request.dot' 'query.edns' 'query.dnssec'
         do print_qps "${x}"
     done
     ;;
@@ -478,20 +478,20 @@ request.tcp request.udp request.doh request.dot query.edns query.dnssec'
 #    done
 #    ;;
 by_rcode)
-    for x in 'answer.aa answer.tc answer.ra answer.rd answer.ad answer.cd \
-answer.do answer.edns0'
+    for x in 'answer.aa' 'answer.tc' 'answer.ra' 'answer.rd' 'answer.ad' 'answer.cd' \
+'answer.do' 'answer.edns0'
         do print_qps "${x}"
     done
     ;;
 by_flags)
-    for x in 'answer.aa answer.tc answer.ra answer.rd answer.ad answer.cd \
-answer.do answer.edns0'
+    for x in 'answer.aa' 'answer.tc' 'answer.ra' 'answer.rd' 'answer.ad' 'answer.cd' \
+'answer.do' 'answer.edns0'
         do print_qps "${x}"
     done
     ;;
 histogram)
-    for x in 'answer.1ms answer.10ms answer.50ms answer.100ms answer.250ms \
-answer.500ms answer.1000ms answer.1500ms'
+    for x in 'answer.1ms' 'answer.10ms' 'answer.50ms' 'answer.100ms' 'answer.250ms' \
+'answer.500ms' 'answer.1000ms' 'answer.1500ms'
         do print_qps "${x}"
     done
     ;;
