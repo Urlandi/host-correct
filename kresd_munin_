@@ -73,8 +73,6 @@ System with knot-resolver daemon.
   env.statefile /var/lib/munin/plugin-state/kresd-state
   env.kresd_control /run/knot-resolver/control
   env.nc_util nc
-#  env.spoof_warn 1000
-#  env.spoof_crit 100000
 
 Use the .env settings to override the defaults.
 
@@ -221,11 +219,6 @@ fi
 
 if test "${exec_param}" = 'suggest' ; then
     echo 'hits'
-#    echo "queue"
-#    echo "memory"
-#    echo "by_type"
-#    echo "by_class"
-#    echo "by_opcode"
     echo 'by_rcode'
     echo 'by_flags'
     echo 'histogram'
@@ -268,65 +261,6 @@ if test "${exec_param}" = 'config' ; then
         p_config 'query.dnssec' 'DNSSEC'
         echo 'graph_info DNS summaries of the recursive resolver.'
         ;;
-#    queue)
-#        echo "graph_title Unbound requestlist size"
-#        echo "graph_args --base 1000 -l 0"
-#        echo "graph_vlabel number of queries"
-#        echo "graph_category DNS"
-#        p_config "total.requestlist.avg" "Average size of queue on insert"
-#        p_config "total.requestlist.max" "Max size of queue \(in 5 min\)"
-#        p_config "total.requestlist.overwritten" "Number of queries replaced by new ones"
-#        p_config "total.requestlist.exceeded" "Number of queries dropped due to lack of space"
-#        echo "graph_info The queries that did not hit the cache and need recursion service take up space in the requestlist. If there are too many queries, first queries get overwritten, and at last resort dropped."
-#        ;;
-#    memory)
-#        echo "graph_title Unbound memory usage"
-#        echo "graph_args --base 1024 -l 0"
-#        echo "graph_vlabel memory used in bytes"
-#        echo "graph_category DNS"
-#        p_config "mem.total.sbrk" "Total memory"
-#        p_config "mem.cache.rrset" "RRset cache memory"
-#        p_config "mem.cache.message" "Message cache memory"
-#        p_config "mem.mod.iterator" "Iterator module memory"
-#        p_config "mem.mod.validator" "Validator module and key cache memory"
-#        echo "graph_info The memory used by unbound."
-#        ;;
-#    by_type)
-#        echo "graph_title Unbound DNS queries by type"
-#        echo "graph_args --base 1000 -l 0"
-#        echo "graph_vlabel queries / second"
-#        echo "graph_category DNS"
-#        for x in `grep "^num.query.type" $state`; do
-#            nm=`echo $x | sed -e 's/=.*$//'`
-#            tp=`echo $nm | sed -e s/num.query.type.//`
-#            p_config "$nm" "$tp"
-#        done
-#        echo "graph_info queries by DNS RR type queried for"
-#        ;;
-#    by_class)
-#        echo "graph_title Unbound DNS queries by class"
-#        echo "graph_args --base 1000 -l 0"
-#        echo "graph_vlabel queries / second"
-#        echo "graph_category DNS"
-#        for x in `grep "^num.query.class" $state`; do
-#            nm=`echo $x | sed -e 's/=.*$//'`
-#            tp=`echo $nm | sed -e s/num.query.class.//`
-#            p_config "$nm" "$tp"
-#        done
-#        echo "graph_info queries by DNS RR class queried for."
-#        ;;
-#    by_opcode)
-#        echo "graph_title Unbound DNS queries by opcode"
-#        echo "graph_args --base 1000 -l 0"
-#        echo "graph_vlabel queries / second"
-#        echo "graph_category DNS"
-#        for x in `grep "^num.query.opcode" $state`; do
-#            nm=`echo $x | sed -e 's/=.*$//'`
-#            tp=`echo $nm | sed -e s/num.query.opcode.//`
-#            p_config "$nm" "$tp"
-#        done
-#        echo "graph_info queries by opcode in the query packet."
-#        ;;
     by_rcode)
         echo 'graph_title Knot Resolver DNS answers by return code'
         echo 'graph_args --base 1000 -l 0'
@@ -434,20 +368,6 @@ print_qps ( ) {
     echo "${mn}.value" `echo scale=1';' "${value}" / "${elapsed}" | bc `
 }
 
-# print qps if line already found in $2
-# print_qps_line ( ) {
-#    mn=`echo $1 | sed $ABBREV | tr . _`
-#    value="`echo ${2} | sed -e 's/^.*] => //'`"
-#    echo "${mn}.value" `echo scale=6';' "${value}" / "${elapsed}" | bc `
-#}
-
-# print value for $1
-# print_value ( ) {
-#    mn=`echo "${1}" | sed $ABBREV | tr . _`
-#    get_value "${1}"
-#    echo "${mn}.value" "${value}"
-#}
-
 case "${id}" in
 hits)
     for x in 'request.total' 'request.internal' 'answer.total' 'answer.cached' \
@@ -455,50 +375,6 @@ hits)
         do print_qps "${x}"
     done
     ;;
-# queue)
-#    for x in total.requestlist.avg total.requestlist.max \
-#        total.requestlist.overwritten total.requestlist.exceeded; do
-#        print_value $x
-#    done
-#    ;;
-# memory)
-#    mn=`echo mem.total.sbrk | sed $ABBREV | tr . _`
-#    get_value 'mem.total.sbrk'
-#    if test $value -eq 0; then
-#        chk=`echo $ctrl | sed -e 's/-control$/-checkconf/'`
-#        pidf=`$chk -o pidfile $conf 2>&1`
-#        pid=`cat $pidf 2>&1`
-#        value=`ps -p "$pid" -o rss= 2>&1`
-#        if test "`expr $value + 1 - 1 2>&1`" -eq "$value" 2>&1; then
-#            value=`expr $value \* 1024` 
-#        else
-#            value=0
-#        fi
-#    fi
-#    echo "$mn.value" $value
-#    for x in mem.cache.rrset mem.cache.message \
-#        mem.mod.iterator mem.mod.validator; do
-#        print_value $x
-#    done
-#    ;;
-# by_type)
-#    for x in `grep "^num.query.type" $state`; do
-#        nm=`echo $x | sed -e 's/=.*$//'`
-#        print_qps_line $nm $x
-#    done
-#    ;;
-# by_class)
-#    for x in `grep "^num.query.class" $state`; do
-#        nm=`echo $x | sed -e 's/=.*$//'`
-#        print_qps_line $nm $x
-#    done
-#    ;;
-# by_opcode)
-#    for x in `grep "^num.query.opcode" $state`; do
-#        nm=`echo $x | sed -e 's/=.*$//'`
-#        print_qps_line $nm $x
-#    done
-#    ;;
 by_rcode)
     for x in 'answer.aa' 'answer.tc' 'answer.ra' 'answer.rd' 'answer.ad' 'answer.cd' \
 'answer.do' 'answer.edns0'

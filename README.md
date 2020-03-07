@@ -2,10 +2,27 @@
 
 Little bit files for host-correct.ru private DNS project:
 
- - lighttpd vhost config
- - [knot-resolver config](kresd.conf)
- - [munin plugin for knot-resolver](kresd_munin_)
- - [default site page](index.htm)
+ - Lighttpd vhost config
+ - [Knot Resolver config](kresd.conf)
+ - [Munin plugin for Knot Resolver](kresd_munin_)
+ - [Default site page](index.htm)
+
+## Munin plugin kresd_munin_
+
+> Original wrote for unbound server by:
+> (C) 2008 W.C.A. Wijngaards.  BSD Licensed.
+> and it's source code may be found on 
+> [https://github.com/dnstap/unbound/blob/master/contrib/unbound_munin_](https://github.com/dnstap/unbound/blob/master/contrib/unbound_munin_)
+
+Plugin for Munin to monitor usage of Knot Resolver servers built-in stats counters.
+
+### Install
+
+ 1. Put the [kresd_munin_](kresd_munin_) file to Munin's source plugins directory, generally `/usr/share/munin/plugins/`.
+ 1. If need, edit [kresd_munin.conf](kresd_munin.conf) and put it to Munin `plugin-conf.d`, generally `/etc/munin/plugin-conf.d/`.
+ 1. Create symlinks to [kresd_munin_](kresd_munin_) with `_hits`, `_by_rcode`, `_kresd_munin_by_flags` and/or `_kresd_munin_histogram` suffix in Munin's enable plugins directory, generally `/etc/munin/plugins/`.
+
+View the source code for take more informations.
   
 # DoH and DoT
 
