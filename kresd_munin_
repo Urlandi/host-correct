@@ -60,7 +60,7 @@
 : <<=cut
 =head1 NAME
 
-kresd_munin_ - Munin plugin to monitor the Unbound DNS resolver.
+kresd_munin_ - Munin plugin to monitor the Knot Resolver.
 
 =head1 APPLICABLE SYSTEMS
 
