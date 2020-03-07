@@ -2,7 +2,7 @@
 
 Little bit files for host-correct.ru private DNS project:
 
- - Lighttpd vhost config
+ - [Lighttpd vhost config](host-correct.ru.conf)
  - [Knot Resolver config](kresd.conf)
  - [Munin plugin for Knot Resolver](kresd_munin_)
  - [Default site page](index.htm)
