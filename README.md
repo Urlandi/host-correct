@@ -21,11 +21,11 @@ Plugin for Munin to monitor usage of Knot Resolver servers built-in stats counte
  1. Put the [kresd_munin_](kresd_munin_) file to Munin's source plugins directory, generally `/usr/share/munin/plugins/`.
  1. If need, edit [kresd_munin.conf](kresd_munin.conf) and put it to Munin `plugin-conf.d`, generally `/etc/munin/plugin-conf.d/`.
  1. Create symlinks to [kresd_munin_](kresd_munin_) with `_hits`, `_by_rcode`, `_by_flags` and `_histogram` suffix in Munin's enable plugins directory, generally `/etc/munin/plugins/`.
- 1. Restart `munin-node`
+ 1. Restart `munin-node`.
 
-View the [source code](kresd_munin_) for take more informations.
+Please view the [source code](kresd_munin_) for take more informations.
   
 # DoH and DoT
 
 You can freely use https://host-correct.ru/doh in yours browser, such as, in Firefox DoH custom service. DoT service too, as you want. But remember host machine have 512 MByte RAM only, so be carefully and do not hope to miracle.
-Visit to https://host-correct.ru/ for more information and views some statistics of server works.
+Please visit https://host-correct.ru/ for more information and views some statistics of server works.
