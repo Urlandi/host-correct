@@ -1,6 +1,6 @@
 # host-correct.ru 
 
-Little bit files for host-correct.ru private DNS project:
+Little bit files for [host-correct.ru](https://host-correct.ru/) private DNS project:
 
  - [Lighttpd vhost config](host-correct.ru.conf)
  - [Knot Resolver config](kresd.conf)
@@ -20,7 +20,8 @@ Plugin for Munin to monitor usage of Knot Resolver servers built-in stats counte
 
  1. Put the [kresd_munin_](kresd_munin_) file to Munin's source plugins directory, generally `/usr/share/munin/plugins/`.
  1. If need, edit [kresd_munin.conf](kresd_munin.conf) and put it to Munin `plugin-conf.d`, generally `/etc/munin/plugin-conf.d/`.
- 1. Create symlinks to [kresd_munin_](kresd_munin_) with `_hits`, `_by_rcode`, `_by_flags` and/or `_histogram` suffix in Munin's enable plugins directory, generally `/etc/munin/plugins/`.
+ 1. Create symlinks to [kresd_munin_](kresd_munin_) with `_hits`, `_by_rcode`, `_by_flags` and `_histogram` suffix in Munin's enable plugins directory, generally `/etc/munin/plugins/`.
+ 1. Restart `munin-node`
 
 View the [source code](kresd_munin_) for take more informations.
   

@@ -191,6 +191,8 @@ get_state ( ) {
             return
         fi
     fi
+    # save previous state
+    save_state
     # get stats from all running kresd instances
     echo "${now}">"${state}"
     for socket in `ls "${kresd_control}/"`; do
@@ -336,7 +338,6 @@ if test "${exec_param}" = 'config' ; then
 fi
 
 # do the stats itself
-save_state
 get_state
 
 # get the time elapsed
@@ -376,8 +377,7 @@ hits)
     done
     ;;
 by_rcode)
-    for x in 'answer.aa' 'answer.tc' 'answer.ra' 'answer.rd' 'answer.ad' 'answer.cd' \
-'answer.do' 'answer.edns0'
+    for x in 'answer.noerror' 'answer.nodata' 'answer.nxdomain' 'answer.cached'
         do print_qps "${x}"
     done
     ;;
@@ -389,7 +389,7 @@ by_flags)
     ;;
 histogram)
     for x in 'answer.1ms' 'answer.10ms' 'answer.50ms' 'answer.100ms' 'answer.250ms' \
-'answer.500ms' 'answer.1000ms' 'answer.1500ms'
+'answer.500ms' 'answer.1000ms' 'answer.1500ms' 'answer.slow'
         do print_qps "${x}"
     done
     ;;
