@@ -266,18 +266,18 @@ if test "${exec_param}" = 'config' ; then
     by_rcode)
         echo 'graph_title Knot Resolver DNS answers by return code'
         echo 'graph_args --base 1000 -l 0'
-        echo 'graph_vlabel answer packets / second'
+        echo 'graph_vlabel answers / second'
         echo 'graph_category DNS'
         p_config 'answer.noerror' 'NOERROR'
         p_config 'answer.nodata' 'NODATA'
         p_config 'answer.nxdomain' 'NXDOMAIN'
         p_config 'answer.cached' 'SERVFAIL'
-        echo 'graph_info answers sorted by return value. rrsets bogus is the number of rrsets marked bogus per second by the validator'
+        echo 'graph_info answers sorted by return value.'
         ;;
     by_flags)
         echo 'graph_title Knot Resolver DNS answers by flags'
         echo 'graph_args --base 1000 -l 0'
-        echo 'graph_vlabel queries / second'
+        echo 'graph_vlabel answers / second'
         echo 'graph_category DNS'
         p_config 'answer.aa' 'authoritative answer'
         p_config 'answer.tc' 'truncated'
@@ -292,7 +292,7 @@ if test "${exec_param}" = 'config' ; then
     histogram)
         echo 'graph_title Knot Resolver DNS histogram of reply time'
         echo 'graph_args --base 1000 -l 0'
-        echo 'graph_vlabel queries / second'
+        echo 'graph_vlabel answers / second'
         echo 'graph_category DNS'
         echo a_1m.label 'less 1 ms'
         echo a_1m.min 0
