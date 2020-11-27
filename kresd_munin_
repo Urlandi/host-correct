@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/bin/env sh
 #
 # *************************************************************
 #
@@ -121,7 +121,7 @@ get_value ( ) {
     if [ "${#}" -ge 2 ]; then
         cur_state="${2}"
     fi
-    values="`grep -i "\[${1}\] => " ${cur_state} | sed -e 's/^.*] => //'`"
+    values="`grep -i "\['${1}'\] = " ${cur_state} | sed -e 's/^.*] = \([0-9]\+\),/\1/'`"
     value=0
     for v in ${values}; do
         if test "${v}x" = 'x'; then
