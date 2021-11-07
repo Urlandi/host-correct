@@ -27,5 +27,5 @@ Please view the [source code](kresd_munin_) for take more informations.
   
 # DoH and DoT
 
-You can freely use https://host-correct.ru/doh in yours browser, such as, in Firefox DoH custom service. DoT service too, as you want. But remember host machine have 512 MByte RAM only, so be carefully and do not hope to miracle.
+You can freely use https://host-correct.ru:44353/dns-query in yours browser, such as, in Firefox DoH custom service. DoT service too, as you want. But remember host machine have 512 MByte RAM only, so be carefully and do not hope to miracle.
 Please visit https://host-correct.ru/ for more information and views some statistics of server works.
