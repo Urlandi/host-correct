@@ -15,7 +15,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Changed
 - English grammar
 
-## [0.9] - 2020-03-07
+## 0.9 - 2020-03-07
 ### Added
 - First usable version
 
