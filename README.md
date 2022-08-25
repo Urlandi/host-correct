@@ -4,8 +4,11 @@ Little bit files for [host-correct.ru](https://host-correct.ru/) private DNS pro
 
  - [Lighttpd vhost config](host-correct.ru.conf)
  - [Knot Resolver config](kresd.conf)
+ - [Unbound config](unbound.conf)
  - [Munin plugin for Knot Resolver](kresd_munin_)
  - [Default site page](index.htm)
+
+Today DNS backend by Knot-Resolved has totally been changed to Unbound with libnghttp2. Please look into [official Unbound guide](https://nlnetlabs.nl/documentation/unbound/howto-statistics/) for Munin configuration.
 
 ## Munin plugin kresd_munin_
 

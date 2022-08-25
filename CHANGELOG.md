@@ -6,6 +6,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+## [2.0] - 2022-25-08
+### Changed
+- Migrated from Knot-Resolver to Unbound 
+
 ## [1.0] - 2021-11-07
 ### Added
 - CHANGELOG
@@ -19,5 +23,6 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Added
 - First usable version
 
-[Unreleased]: https://github.com/urlandi/host-correct/compare/v1.0...HEAD
+[Unreleased]: https://github.com/urlandi/host-correct/compare/v2.0...HEAD
+[2.0]: https://github.com/urlandi/host-correct/compare/v1.0...v2.0
 [1.0]: https://github.com/urlandi/host-correct/compare/v0.9...v1.0
