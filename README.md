@@ -9,7 +9,7 @@ Little bit files for [host-correct.ru](https://host-correct.ru/) private DNS pro
  - [Munin plugin for Knot Resolver](kresd_munin_)
  - [Default site page](index.htm)
 
-Nowadays PowerDNS is used as the backend. Early ISC BIND was used and earlier, Knot-Resolver and Unbound with libnghttp2 were used.
+Nowadays PowerDNS is used as the backend. Early ISC BIND was used, and earlier Knot-Resolver and Unbound with libnghttp2 were used.
 
 ## Munin plugin kresd_munin_
 
