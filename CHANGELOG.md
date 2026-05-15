@@ -6,6 +6,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 ### Changed
+- Typos
+
+## [4.0] - 2026-15-05
+### Changed
 - Migrated from BIND to PowerDNS
 
 ## [3.0] - 2023-15-08
@@ -30,7 +34,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Added
 - First usable version
 
-[Unreleased]: https://github.com/urlandi/host-correct/compare/v3.0...HEAD
+[Unreleased]: https://github.com/urlandi/host-correct/compare/v4.0...HEAD
+[4.0]: https://github.com/urlandi/host-correct/compare/v3.0...v4.0
 [3.0]: https://github.com/urlandi/host-correct/compare/v2.0...v3.0
 [2.0]: https://github.com/urlandi/host-correct/compare/v1.0...v2.0
 [1.0]: https://github.com/urlandi/host-correct/compare/v0.9...v1.0

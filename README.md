@@ -7,7 +7,9 @@ Little bit files for [host-correct.ru](https://host-correct.ru/) private DNS pro
  - [Unbound config](unbound.conf)
  - [ISC BIND config](named.conf)
  - [Munin plugin for Knot Resolver](kresd_munin_)
- - [Default site page](index.htm)
+ - [Default site page](index.html)
+ - [PowerDNS DNSdist config](dnsdist.conf)
+ - [PowerDNS Recursor config](recursor.conf)
 
 Nowadays PowerDNS is used as the backend. Early ISC BIND was used, and earlier Knot-Resolver and Unbound with libnghttp2 were used.
 
@@ -31,5 +33,5 @@ Please view the [source code](kresd_munin_) for take more informations.
   
 # DoH and DoT
 
-You can freely use https://host-correct.ru/dns-query in yours browser, such as, in Firefox DoH custom service. DoT service too, as you want. But remember host machine have 512 MByte RAM only, so be carefully and do not hope to miracle.
+You can freely use https://host-correct.ru/dns-query in yours browser, such as, in Firefox DoH custom service. DoT service too, as you want. But remember host machine have a gigabyte RAM only, so be carefully and do not hope to miracle.
 Please visit https://host-correct.ru/ for more information and views some statistics of server works.
